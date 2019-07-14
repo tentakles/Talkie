@@ -63,7 +63,7 @@ uint8_t Talkie::getBits(uint8_t bits) {
 	}
 	return value;
 }
-void Talkie::say(uint8_t* addr) {
+void Talkie::say(const uint8_t* addr) {
 	uint8_t energy;
 
 	if (!setup) {
@@ -71,16 +71,29 @@ void Talkie::say(uint8_t* addr) {
 		// 
 		// Enable the speech system whenever say() is called.
 		
-		pinMode(5,OUTPUT);
+		
+		#if defined(ARDUINO_AVR_LEONARDO)
+		 pinMode(5,OUTPUT);
+		#else
+		 pinMode(3,OUTPUT);
+		#endif
+
 		// Timer 2 set up as a 62500Hz PWM.
 		//
 		// The PWM 'buzz' is well above human hearing range and is
 		// very easy to filter out.
 		//
+
+		#if defined(ARDUINO_AVR_LEONARDO)
 		TCCR3A = _BV(COM3A1) | _BV(WGM30);
 		TCCR3B = _BV(WGM32) | _BV(CS30);
 		TIMSK3 = 0;
-	
+		#else
+		TCCR2A = _BV(COM2B1) | _BV(WGM21) | _BV(WGM20);
+		TCCR2B = _BV(CS20);
+		TIMSK2 = 0;
+		#endif
+
 		// Unfortunately we can't calculate the next sample every PWM cycle
 		// as the routine is too slow. So use Timer 1 to trigger that.
 		
@@ -152,7 +165,12 @@ ISR(TIMER1_COMPA_vect) {
   static int16_t x0,x1,x2,x3,x4,x5,x6,x7,x8,x9,x10;
   int16_t u0,u1,u2,u3,u4,u5,u6,u7,u8,u9,u10;
 
+  #if defined(ARDUINO_AVR_LEONARDO)
   OCR3A = nextPwm;
+  #else
+  OCR2B = nextPwm;
+  #endif
+
   sei();
   if (synthPeriod) {
     // Voiced source
